@@ -67,7 +67,7 @@ while true; do
   # For each torrent that is uploading, get the IP of any peer with a client string of "TorrentStorm 0.0.0.8"
   badIPArray=()
   for hash in "${hashArray[@]}"; do
-    response=$(curl -sS --header "Referer: ${baseUrl}" -b cookies.txt ${baseUrl}/api/v2/sync/torrentPeers?hash=${hash} | jq -r '.peers[] | select(.client == "TorrentStorm 0.0.0.8") | .ip')
+    response=$(curl -sS --header "Referer: ${baseUrl}" -b cookies.txt ${baseUrl}/api/v2/sync/torrentPeers?hash=${hash} | jq -r '.peers | to_entries[] | select(.value.client == "TorrentStorm 0.0.0.8") | .key')
     # The response will include empty strings for peers that aren't TorrentStorm, so we append only non-empty strings to the array
     while IFS= read -r line; do
       if [[ -n "$line" ]]; then
