@@ -47,7 +47,7 @@ while true; do
   sleep ${sleepTime}
 
   # Get all active torrents from API, then grab the hashes of ones that are currently uploading. Stores as a string separated by newline, e.g., "hash1\nhash2"
-  response=$(curl -sS --header "Referer: ${baseUrl}" -b cookies.txt ${baseUrl}/api/v2/torrents/info?filter=active | jq -r '.[] | select(.state == "uploading") | .hash')
+  response=$(curl -sS --header "Referer: ${baseUrl}" -b cookies.txt ${baseUrl}/api/v2/torrents/info?filter=active)
 
   # If no torrents are uploading, then stop the script
   if [ "$response" == '[]' ]; then
@@ -55,11 +55,14 @@ while true; do
     continue
   fi
 
+  # Now that we know the response isn't empty, attempt to parse it
+  hashes=$(echo "$response" | jq -r '.[] | select(.state == "uploading") | .hash')
+
   # Split string with hashes into an array
   hashArray=()
   while IFS= read -r line; do
     hashArray+=("$line")
-  done <<< "$response"
+  done <<< "$hashes"
 
   # For each torrent that is uploading, get the IP of any peer with a client string of "TorrentStorm 0.0.0.8"
   badIPArray=()
@@ -70,7 +73,7 @@ while true; do
       if [[ -n "$line" ]]; then
         badIPArray+=("$line")
       fi
-    done <<< "$response"  
+    done <<< "$response"
   done
 
   if [ ${#badIPArray[@]} -eq 0 ]; then
