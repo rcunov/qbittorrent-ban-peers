@@ -33,6 +33,8 @@ if ! echo "$sleepTime" | grep -qE '^[0-9]+$'; then
   exit 1
 fi
 
+sleep 4 # Give qBittorrent some time to start before sending requests
+
 baseUrl="${qbUrl:-"http://localhost:8080"}" # Set default qBittorrent connection string if not set with environment variable
 # Get auth cookie
 response=$(curl -sS --header "Referer: ${baseUrl}" --data "username=${qbUsername}&password=${qbPassword}" -c cookies.txt ${baseUrl}/api/v2/auth/login)
