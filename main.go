@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/tidwall/gjson"
 )
 
 var (
@@ -109,9 +111,20 @@ func main() {
 		// TODO: restart if no torrents are active
 	}
 
-	// TODO: parse active torrents - get hash where state=uploading
+	// parse active torrents - get hash where state=uploading
+	if !gjson.ValidBytes(body) {
+		logger.Error("invalid json response when attempting to get active torrents")
+		os.Exit(1)
+	}
+	activeTorrents := gjson.ParseBytes(body)
+	uploadingHashes := activeTorrents.Get(`#(state=="uploading")#.hash`)
 
-	// TODO: add hashes to slice
+	// add hashes to slice
+	var uploadingSlice []string
+	for _, v := range uploadingHashes.Array() {
+		uploadingSlice = append(uploadingSlice, v.Str)
+	}
+	fmt.Println(uploadingSlice)
 
 	// get info on uploading torrents
 	requestUrl = qbitBaseUrl + "/api/v2/sync/torrentPeers?hash="
