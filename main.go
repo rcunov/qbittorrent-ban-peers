@@ -117,7 +117,6 @@ func main() {
 	requestUrl = qbitBaseUrl + "/api/v2/sync/torrentPeers?hash="
 	req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
 	resp, err = RetryRequest(req, 4, 2*time.Second)
-	logger.Debug(resp.Status)
 	if err != nil {
 		logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
 	}
