@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	// Auth
+	// auth
 	qbitBaseUrl  = os.Getenv("qbitBaseUrl")
 	qbitUsername = os.Getenv("qbitUsername")
 	qbitPassword = os.Getenv("qbitPassword")
 
-	// Global HTTP client with a cookie jar
+	// global HTTP client with a cookie jar
 	jar, _ = cookiejar.New(nil)
 	client = &http.Client{Jar: jar}
 )
@@ -61,37 +61,84 @@ func main() {
 	CheckIsSet("qbitUsername")
 	CheckIsSet("qbitPassword")
 
-	// Step 1: Authenticate and get session cookie
+	// authenticate and get session cookie
 	requestUrl := qbitBaseUrl + "/api/v2/auth/login"
 	data := url.Values{"username": {qbitUsername}, "password": {qbitPassword}}
-	req, _ := http.NewRequest("POST", requestUrl, strings.NewReader(data.Encode()))
+	req, _ := http.NewRequest(http.MethodPost, requestUrl, strings.NewReader(data.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
 	resp, err := RetryRequest(req, 3, 2*time.Second)
 	if err != nil {
-		fmt.Println("Error logging in:", err)
-		return
+		logger.Error("failed to send qbit authentication request", "error", err.Error())
+		os.Exit(1)
 	}
 	defer resp.Body.Close()
-
+	body, _ := io.ReadAll(resp.Body)
+	authResponse := string(body)
 	if resp.StatusCode != http.StatusOK {
-		logger.Error("failed to authenticate to qbit", "status_code", resp.StatusCode)
-		return
+		logger.Error("qbit authentication request returned an error", "status_code", resp.StatusCode)
+		os.Exit(1)
 	}
-
+	if authResponse != "Ok." {
+		logger.Error("invalid credentials for qbit", "response", authResponse)
+		os.Exit(1)
+	}
 	logger.Debug("successfully authenticated to qbit", "status_code", resp.StatusCode)
 
-	// Step 2: Use the authenticated session to fetch torrent list
+	// get app version for debugging purposes
 	requestUrl = qbitBaseUrl + "/api/v2/app/version"
-	req, _ = http.NewRequest("GET", requestUrl, nil)
-
+	req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
 	resp, err = RetryRequest(req, 3, 2*time.Second)
 	if err != nil {
 		logger.Error("failed to get version from qbit", "status_code", resp.StatusCode)
 		return
 	}
 	defer resp.Body.Close()
+	body, _ = io.ReadAll(resp.Body)
+	logger.Debug("retrieved qbit API version", "version", string(body))
 
-	body, _ := io.ReadAll(resp.Body)
-	logger.Info(string(body))
+	// TODO: start infinite for loop here
+	// get list of active torrents
+	requestUrl = qbitBaseUrl + "/api/v2/torrents/info?filter=active"
+	req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
+	resp, err = RetryRequest(req, 4, 2*time.Second)
+	if err != nil {
+		logger.Error("failed to get active torrents", "error", err.Error(), "status_code", resp.StatusCode)
+	}
+	// TODO: continue if no torrents are active
+	// if response == "" {
+	// 	continue
+	// }
+	body, _ = io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+
+	// TODO: parse active torrents - get hash where state=uploading
+
+	// TODO: add hashes to slice
+
+	// get info on uploading torrents
+	requestUrl = qbitBaseUrl + "/api/v2/sync/torrentPeers?hash="
+	req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
+	resp, err = RetryRequest(req, 4, 2*time.Second)
+	logger.Debug(resp.Status)
+	if err != nil {
+		logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
+	}
+	body, _ = io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
+			"response", string(body), "hash", "TODO: hash goes here",
+		)
+	}
+
+	// TODO: get <ip and port> where peers.<ip and port>.peer_id_client = "-TS0008-"
+
+	// TODO: add peer to badPeerSlice
+
+	// TODO: create goofy string for ban API request from badPeerSlice like "1.2.3.4:55|6.7.8.9:00"
+
+	// TODO: ban them
+	// curl -sS --header "Referer: ${baseUrl}" -b auth.txt ${baseUrl}/api/v2/transfer/banPeers?${banString}
+
+	// TODO: log banned peers
+	// logger.Info("banned some peers", "peers", someJsonArrayWithBannedPeerIPs)
 }
