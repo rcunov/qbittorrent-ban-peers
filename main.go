@@ -103,12 +103,11 @@ func main() {
 	if err != nil {
 		logger.Error("failed to get active torrents", "error", err.Error(), "status_code", resp.StatusCode)
 	}
-	// TODO: continue if no torrents are active
-	// if response == "" {
-	// 	continue
-	// }
 	body, _ = io.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	if string(body) == `[]` {
+		logger.Info("no active torrents")
+		// TODO: restart if no torrents are active
+	}
 
 	// TODO: parse active torrents - get hash where state=uploading
 
