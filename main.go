@@ -118,26 +118,28 @@ func main() {
 	}
 	activeTorrents := gjson.ParseBytes(body)
 	uploadingHashes := activeTorrents.Get(`#(state=="uploading")#.hash`)
-
-	// add hashes to slice
-	var uploadingSlice []string
-	for _, v := range uploadingHashes.Array() {
-		uploadingSlice = append(uploadingSlice, v.Str)
+	if len(uploadingHashes.Array()) == 0 {
+		logger.Info("no torrents are uploading")
+		// continue
 	}
-	fmt.Println(uploadingSlice)
 
 	// get info on uploading torrents
-	requestUrl = qbitBaseUrl + "/api/v2/sync/torrentPeers?hash="
-	req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
-	resp, err = RetryRequest(req, 4, 2*time.Second)
-	if err != nil {
-		logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
-	}
-	body, _ = io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
-			"response", string(body), "hash", "TODO: hash goes here",
-		)
+	// ? would be good practice for concurrency here - could probably run each in a goroutine
+	for i, hash := range uploadingHashes.Array() {
+		requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
+		req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
+		resp, err = RetryRequest(req, 4, 2*time.Second)
+		if err != nil {
+			logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
+		}
+		body, _ = io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK {
+			logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
+				"response", string(body), "hash", "TODO: hash goes here",
+			)
+		}
+		fmt.Println(string(body))
+		fmt.Println(i + 1)
 	}
 
 	// TODO: get <ip and port> where peers.<ip and port>.peer_id_client = "-TS0008-"
