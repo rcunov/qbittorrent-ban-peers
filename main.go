@@ -75,11 +75,11 @@ func main() {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Login failed:", resp.Status)
+		logger.Error("failed to authenticate to qbit", "status_code", resp.StatusCode)
 		return
 	}
 
-	logger.Debug("successfully authenticated")
+	logger.Debug("successfully authenticated to qbit", "status_code", resp.StatusCode)
 
 	// Step 2: Use the authenticated session to fetch torrent list
 	requestUrl = qbitBaseUrl + "/api/v2/app/version"
@@ -87,7 +87,7 @@ func main() {
 
 	resp, err = RetryRequest(req, 3, 2*time.Second)
 	if err != nil {
-		fmt.Println("Error fetching torrents:", err)
+		logger.Error("failed to get version from qbit", "status_code", resp.StatusCode)
 		return
 	}
 	defer resp.Body.Close()
