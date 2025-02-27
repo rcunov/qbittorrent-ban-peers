@@ -82,7 +82,7 @@ func main() {
 		logger.Error("invalid credentials for qbit", "response", authResponse)
 		os.Exit(1)
 	}
-	logger.Debug("successfully authenticated to qbit", "status_code", resp.StatusCode)
+	logger.Debug("successfully authenticated to qbit", "status_code", resp.StatusCode, "response", authResponse)
 
 	// get app version for debugging purposes
 	requestUrl = qbitBaseUrl + "/api/v2/app/version"
