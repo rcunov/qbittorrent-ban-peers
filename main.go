@@ -90,7 +90,6 @@ func main() {
 	resp, err = RetryRequest(req, 3, 2*time.Second)
 	if err != nil {
 		logger.Error("failed to get version from qbit", "status_code", resp.StatusCode)
-		return
 	}
 	defer resp.Body.Close()
 	body, _ = io.ReadAll(resp.Body)
