@@ -1,8 +1,25 @@
 package main
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"os"
+	"strings"
 	"time"
+)
+
+var (
+	// Auth
+	qbitBaseUrl  = os.Getenv("qbitBaseUrl")
+	qbitUsername = os.Getenv("qbitUsername")
+	qbitPassword = os.Getenv("qbitPassword")
+
+	// Global HTTP client with a cookie jar
+	jar, _ = cookiejar.New(nil)
+	client = &http.Client{Jar: jar}
 )
 
 func CheckIsSet(envName string) {
@@ -15,37 +32,66 @@ func CheckIsSet(envName string) {
 	}
 }
 
+// RetryRequest retries an HTTP request if it fails, up to maxRetries times.
+func RetryRequest(req *http.Request, maxRetries int, delay time.Duration) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+
+	for i := range maxRetries {
+		resp, err = client.Do(req)
+		if err == nil && resp.StatusCode < 500 {
+			return resp, nil
+		}
+
+		// Close response body before retrying
+		if resp != nil {
+			resp.Body.Close()
+		}
+
+		fmt.Printf("Request failed (attempt %d/%d), retrying in %v...\n", i+1, maxRetries, delay)
+		time.Sleep(delay)
+	}
+	return nil, fmt.Errorf("request failed after %d attempts: %v", maxRetries, err)
+}
+
 func main() {
 	InitializeLogging()
 
 	CheckIsSet("qbitBaseUrl")
+	CheckIsSet("qbitUsername")
+	CheckIsSet("qbitPassword")
 
-	logger.Info("hello")
+	// Step 1: Authenticate and get session cookie
+	requestUrl := qbitBaseUrl + "/api/v2/auth/login"
+	data := url.Values{"username": {qbitUsername}, "password": {qbitPassword}}
+	req, _ := http.NewRequest("POST", requestUrl, strings.NewReader(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	time.Sleep(6 * time.Second) // wait for qbit to start
-
-	// TODO: auth to qbit and log error if failed
-	// curl --header "Referer: ${baseUrl}" ${baseUrl}/api/v2/auth/login
-	// ? save cookie or pass some token? will need to submit auth with subsequent requests
-
-	for {
-		time.Sleep(3 * time.Second)
-		// TODO: get active torrents
-		// curl -sS --header "Referer: ${baseUrl}" -b auth.txt ${baseUrl}/api/v2/torrents/info?filter=active
-		// TODO: continue if no torrents are active
-		// if response == "" {
-		// 	continue
-		// }
-		// TODO: parse active torrents - get hash where state=uploading
-		// TODO: add hashes to slice
-		// TODO: get key where value.id (? need real path) is -TS0008- (? need real value)
-		// response=$(curl -sS --header "Referer: ${baseUrl}" -b auth.txt ${baseUrl}/api/v2/sync/torrentPeers?hash=${hash} | jq -r '.peers | to_entries[] | select(.value.client == "TorrentStorm 0.0.0.8") | .key')
-		// TODO: add key to new badHashSlice
-		// TODO: create goofy string for ban API request from badHashSlice
-		// banString=$(IFS=\|; echo "${badIPArray[*]}") # Creates a string like "1.2.3.4:55|6.7.8.9:00" for the qBittorrent API
-		// TODO: ban them
-		// curl -sS --header "Referer: ${baseUrl}" -b auth.txt ${baseUrl}/api/v2/transfer/banPeers?${banString}
-		// TODO: log banned peers
-		// logger.Info("banned some peers", "peers", someJsonArrayWithBannedPeerIPs)
+	resp, err := RetryRequest(req, 3, 2*time.Second)
+	if err != nil {
+		fmt.Println("Error logging in:", err)
+		return
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Login failed:", resp.Status)
+		return
+	}
+
+	logger.Debug("successfully authenticated")
+
+	// Step 2: Use the authenticated session to fetch torrent list
+	requestUrl = qbitBaseUrl + "/api/v2/app/version"
+	req, _ = http.NewRequest("GET", requestUrl, nil)
+
+	resp, err = RetryRequest(req, 3, 2*time.Second)
+	if err != nil {
+		fmt.Println("Error fetching torrents:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	logger.Info(string(body))
 }
