@@ -140,11 +140,11 @@ func main() {
 		}
 		fmt.Println(string(body))
 		fmt.Println(i + 1)
+
+		// TODO: get <ip and port> where peers.<ip and port>.peer_id_client = "-TS0008-"
+
+		// TODO: add peer to badPeerSlice
 	}
-
-	// TODO: get <ip and port> where peers.<ip and port>.peer_id_client = "-TS0008-"
-
-	// TODO: add peer to badPeerSlice
 
 	// TODO: create goofy string for ban API request from badPeerSlice like "1.2.3.4:55|6.7.8.9:00"
 
