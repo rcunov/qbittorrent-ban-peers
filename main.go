@@ -124,8 +124,9 @@ func main() {
 	}
 
 	// get info on uploading torrents
+	var badPeers []string
 	// ? would be good practice for concurrency here - could probably run each in a goroutine
-	for i, hash := range uploadingHashes.Array() {
+	for _, hash := range uploadingHashes.Array() {
 		requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
 		req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
 		resp, err = RetryRequest(req, 4, 2*time.Second)
@@ -135,15 +136,28 @@ func main() {
 		body, _ = io.ReadAll(resp.Body)
 		if resp.StatusCode != http.StatusOK {
 			logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
-				"response", string(body), "hash", "TODO: hash goes here",
+				"response", string(body), "hash", hash.Str,
 			)
 		}
-		fmt.Println(string(body))
-		fmt.Println(i + 1)
+		if !gjson.ValidBytes(body) {
+			logger.Error("invalid json response when attempting to parse uploading torrent", "hash", hash.Str)
+			os.Exit(1)
+		}
 
-		// TODO: get <ip and port> where peers.<ip and port>.peer_id_client = "-TS0008-"
+		// Iterate over each peer and find the key where port is 51425
+		details := gjson.ParseBytes(body)
 
-		// TODO: add peer to badPeerSlice
+		peers := details.Get(`peers`)
+		peers.ForEach(func(key, value gjson.Result) bool {
+			if value.Get("peer_id_client").Str == "-TS0008-" {
+				badPeers = append(badPeers, key.String())
+				return false // Stop iteration once found
+			}
+			return true
+		})
+	}
+	if len(badPeers) > 0 {
+		logger.Info("found bad peers", "peers", badPeers)
 	}
 
 	// TODO: create goofy string for ban API request from badPeerSlice like "1.2.3.4:55|6.7.8.9:00"
