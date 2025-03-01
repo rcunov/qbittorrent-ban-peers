@@ -5,10 +5,9 @@ on:
     branches:
       - "main"
     paths:
-      - "Dockerfile"
-      - "banhammer.sh"
-  schedule:
-    - cron: '0 0 1 * *'
+      - "*.go"
+      - "go.mod"
+      - "go.sum"
   workflow_dispatch:
 
 env:
