@@ -24,12 +24,10 @@ services:
       - qbittorrent-network
     init: true # https://docs.docker.com/compose/compose-file/compose-file-v3/#init
     environment:
-      # - logLevel=0 # 0=DEBUG, 1=INFO, 2=ERROR. Uncomment this if you want more verbose logs. Defaults to 1
-      # - sleepTime=2 # Defaults to 10 seconds between checks
-      - qbUrl=http://qbittorrent:8080 # Defaults to http://localhost:8080
-      - qbUsername=${qbUsername} # qBittorrent web UI username
-      - qbPassword=${qbPassword} # qBittorrent web UI password
-      - TZ=${TZ} # Use your machine's current time zone for the container's logs
+      - qbitBaseUrl=http://qbittorrent:8080
+      - qbitUsername=${qbUsername} # qBittorrent web UI username
+      - qbitPassword=${qbPassword} # qBittorrent web UI password
+      # - logLevel=debug # defaults to "info" if not set
 
 networks:
   qbittorrent-network:
