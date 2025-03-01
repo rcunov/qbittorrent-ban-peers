@@ -144,9 +144,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Iterate over each peer and find the key where port is 51425
+		// iterate over each peer and find the ip/port of peers using the TS0008 peer ID
 		details := gjson.ParseBytes(body)
-
 		peers := details.Get(`peers`)
 		peers.ForEach(func(key, value gjson.Result) bool {
 			if value.Get("peer_id_client").Str == "-TS0008-" {
