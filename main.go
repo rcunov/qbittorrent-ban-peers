@@ -84,7 +84,7 @@ func main() {
 		logger.Error("invalid credentials for qbit", "response", authResponse)
 		os.Exit(1)
 	}
-	logger.Debug("successfully authenticated to qbit", "status_code", resp.StatusCode, "response", authResponse)
+	logger.Debug("successfully authenticated to qbit")
 
 	// get app version for debugging purposes
 	requestUrl = qbitBaseUrl + "/api/v2/app/version"
@@ -176,9 +176,6 @@ func main() {
 	if len(body) != 0 {
 		logger.Error("invalid response when trying to ban peers", "peers", badPeers, "response", string(body))
 	} else {
-		logger.Debug("received proper response when banning peers", "peers", badPeers)
+		logger.Info("banned some peers", "peers", badPeers)
 	}
-
-	// TODO: log banned peers
-	// logger.Info("banned some peers", "peers", someJsonArrayWithBannedPeerIPs)
 }
