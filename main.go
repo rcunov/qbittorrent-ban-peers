@@ -137,7 +137,7 @@ mainLoop:
 			})
 		}
 		if len(badPeers) > 0 {
-			logger.Info("found bad peers", "peers", badPeers)
+			logger.Debug("found bad peers", "peers", badPeers)
 		} else {
 			logger.Debug("no bad peers found")
 			continue mainLoop
