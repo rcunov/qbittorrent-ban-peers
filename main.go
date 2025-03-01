@@ -58,6 +58,7 @@ func RetryRequest(req *http.Request, maxRetries int, delay time.Duration) (*http
 
 func main() {
 	InitializeLogging()
+	logger.Info("starting up")
 
 	CheckIsSet("qbitBaseUrl")
 	CheckIsSet("qbitUsername")
