@@ -158,12 +158,27 @@ func main() {
 	}
 	if len(badPeers) > 0 {
 		logger.Info("found bad peers", "peers", badPeers)
+	} else {
+		logger.Debug("no bad peers found")
+		os.Exit(0)
 	}
 
-	// TODO: create goofy string for ban API request from badPeerSlice like "1.2.3.4:55|6.7.8.9:00"
+	// ban them
+	requestUrl = qbitBaseUrl + "/api/v2/transfer/banPeers"
+	data = url.Values{"peers": {strings.Join(badPeers[:], "|")}} // produces {"peers": "1.2.3.4:55|5.6.7.8:99"}
+	req, _ = http.NewRequest(http.MethodPost, requestUrl, strings.NewReader(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err = RetryRequest(req, 4, 2*time.Second)
+	if err != nil {
+		logger.Error("failed to ban bad peers", "error", err.Error()) // don't include status code because docs say that
+	} // it always returns a 200 OK https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#ban-peers
 
-	// TODO: ban them
-	// curl -sS --header "Referer: ${baseUrl}" -b auth.txt ${baseUrl}/api/v2/transfer/banPeers?${banString}
+	body, _ = io.ReadAll(resp.Body)
+	if len(body) != 0 {
+		logger.Error("invalid response when trying to ban peers", "peers", badPeers, "response", string(body))
+	} else {
+		logger.Debug("received proper response when banning peers", "peers", badPeers)
+	}
 
 	// TODO: log banned peers
 	// logger.Info("banned some peers", "peers", someJsonArrayWithBannedPeerIPs)
