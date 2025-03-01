@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/tidwall/gjson"
 )
@@ -34,28 +33,6 @@ func CheckIsSet(envName string) {
 	}
 }
 
-// RetryRequest retries an HTTP request if it fails, up to maxRetries times.
-func RetryRequest(req *http.Request, maxRetries int, delay time.Duration) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-
-	for i := range maxRetries {
-		resp, err = client.Do(req)
-		if err == nil && resp.StatusCode < 500 {
-			return resp, nil
-		}
-
-		// Close response body before retrying
-		if resp != nil {
-			resp.Body.Close()
-		}
-
-		fmt.Printf("Request failed (attempt %d/%d), retrying in %v...\n", i+1, maxRetries, delay)
-		time.Sleep(delay)
-	}
-	return nil, fmt.Errorf("request failed after %d attempts: %v", maxRetries, err)
-}
-
 func main() {
 	InitializeLogging()
 	logger.Info("starting up")
@@ -67,9 +44,7 @@ func main() {
 	// authenticate and get session cookie
 	requestUrl := qbitBaseUrl + "/api/v2/auth/login"
 	data := url.Values{"username": {qbitUsername}, "password": {qbitPassword}}
-	req, _ := http.NewRequest(http.MethodPost, requestUrl, strings.NewReader(data.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := RetryRequest(req, 3, 2*time.Second)
+	resp, err := client.PostForm(requestUrl, data)
 	if err != nil {
 		logger.Error("failed to send qbit authentication request", "error", err.Error())
 		os.Exit(1)
@@ -89,8 +64,7 @@ func main() {
 
 	// get app version for debugging purposes
 	requestUrl = qbitBaseUrl + "/api/v2/app/version"
-	req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
-	resp, err = RetryRequest(req, 3, 2*time.Second)
+	resp, err = client.Get(requestUrl)
 	if err != nil {
 		logger.Error("failed to get version from qbit", "status_code", resp.StatusCode)
 	}
@@ -101,8 +75,7 @@ func main() {
 	// TODO: start infinite for loop here
 	// get list of active torrents
 	requestUrl = qbitBaseUrl + "/api/v2/torrents/info?filter=active"
-	req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
-	resp, err = RetryRequest(req, 4, 2*time.Second)
+	resp, err = client.Get(requestUrl)
 	if err != nil {
 		logger.Error("failed to get active torrents", "error", err.Error(), "status_code", resp.StatusCode)
 	}
@@ -129,8 +102,7 @@ func main() {
 	// ? would be good practice for concurrency here - could probably run each in a goroutine
 	for _, hash := range uploadingHashes.Array() {
 		requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
-		req, _ = http.NewRequest(http.MethodGet, requestUrl, nil)
-		resp, err = RetryRequest(req, 4, 2*time.Second)
+		resp, err = client.Get(requestUrl)
 		if err != nil {
 			logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
 		}
@@ -166,9 +138,7 @@ func main() {
 	// ban them
 	requestUrl = qbitBaseUrl + "/api/v2/transfer/banPeers"
 	data = url.Values{"peers": {strings.Join(badPeers[:], "|")}} // produces {"peers": "1.2.3.4:55|5.6.7.8:99"}
-	req, _ = http.NewRequest(http.MethodPost, requestUrl, strings.NewReader(data.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err = RetryRequest(req, 4, 2*time.Second)
+	resp, err = client.PostForm(requestUrl, data)
 	if err != nil {
 		logger.Error("failed to ban bad peers", "error", err.Error()) // don't include status code because docs say that
 	} // it always returns a 200 OK https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#ban-peers
