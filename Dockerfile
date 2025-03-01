@@ -1,21 +1,19 @@
-FROM alpine:3.20
+FROM golang:alpine3.20 AS build
 
-# Install dependencies
-RUN apk add --no-cache \
-    curl \
-    jq \
-    bash
+WORKDIR /app
 
-# Create "sidecar" user
-RUN adduser --system --home /home/sidecar --shell /bin/bash --disabled-password sidecar
+COPY go.mod go.sum ./
 
-# Run as "sidecar" user
-USER sidecar
+RUN go mod download
 
-WORKDIR /home/sidecar
+COPY *.go ./
 
-COPY banhammer.sh .
+RUN go build -o /banhammer .
 
-ENTRYPOINT ["/bin/bash"]
+# This base image contains CA certificates we need for outbound HTTPS requests
+# https://github.com/GoogleContainerTools/distroless/blob/main/base/README.md
+FROM gcr.io/distroless/static
 
-CMD ["banhammer.sh"]
+COPY --from=build --chmod=755 "/banhammer" "/banhammer"
+
+ENTRYPOINT [ "/banhammer" ]
