@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 )
@@ -67,86 +68,96 @@ func main() {
 	resp, err = client.Get(requestUrl)
 	if err != nil {
 		logger.Error("failed to get version from qbit", "status_code", resp.StatusCode)
+		os.Exit(1)
 	}
 	defer resp.Body.Close()
 	body, _ = io.ReadAll(resp.Body)
 	logger.Debug("retrieved qbit API version", "version", string(body))
 
-	// TODO: start infinite for loop here
-	// get list of active torrents
-	requestUrl = qbitBaseUrl + "/api/v2/torrents/info?filter=active"
-	resp, err = client.Get(requestUrl)
-	if err != nil {
-		logger.Error("failed to get active torrents", "error", err.Error(), "status_code", resp.StatusCode)
-	}
-	body, _ = io.ReadAll(resp.Body)
-	if string(body) == `[]` {
-		logger.Info("no active torrents")
-		// TODO: restart if no torrents are active
-	}
-
-	// parse active torrents - get hash where state=uploading
-	if !gjson.ValidBytes(body) {
-		logger.Error("invalid json response when attempting to get active torrents")
-		os.Exit(1)
-	}
-	activeTorrents := gjson.ParseBytes(body)
-	uploadingHashes := activeTorrents.Get(`#(state=="uploading")#.hash`)
-	if len(uploadingHashes.Array()) == 0 {
-		logger.Info("no torrents are uploading")
-		// continue
-	}
-
-	// get info on uploading torrents
-	var badPeers []string
-	// ? would be good practice for concurrency here - could probably run each in a goroutine
-	for _, hash := range uploadingHashes.Array() {
-		requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
+	// start infinite loop here to check for bad peers
+mainLoop:
+	for {
+		time.Sleep(3 * time.Second)
+		// get list of active torrents
+		requestUrl = qbitBaseUrl + "/api/v2/torrents/info?filter=active"
 		resp, err = client.Get(requestUrl)
 		if err != nil {
-			logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
-		}
-		body, _ = io.ReadAll(resp.Body)
-		if resp.StatusCode != http.StatusOK {
-			logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
-				"response", string(body), "hash", hash.Str,
-			)
-		}
-		if !gjson.ValidBytes(body) {
-			logger.Error("invalid json response when attempting to parse uploading torrent", "hash", hash.Str)
+			logger.Error("failed to get active torrents", "error", err.Error(), "status_code", resp.StatusCode)
 			os.Exit(1)
 		}
+		body, _ = io.ReadAll(resp.Body)
+		if string(body) == `[]` {
+			logger.Info("no active torrents")
+			continue mainLoop
+		}
 
-		// iterate over each peer and find the ip/port of peers using the TS0008 peer ID
-		details := gjson.ParseBytes(body)
-		peers := details.Get(`peers`)
-		peers.ForEach(func(key, value gjson.Result) bool {
-			if value.Get("peer_id_client").Str == "-TS0008-" {
-				badPeers = append(badPeers, key.String())
-				return false // Stop iteration once found
+		// parse active torrents - get hash where state=uploading
+		if !gjson.ValidBytes(body) {
+			logger.Error("invalid json response when attempting to get active torrents")
+			os.Exit(1)
+		}
+		activeTorrents := gjson.ParseBytes(body)
+		uploadingHashes := activeTorrents.Get(`#(state=="uploading")#.hash`)
+		if len(uploadingHashes.Array()) == 0 {
+			logger.Info("no torrents are uploading")
+			continue mainLoop
+		}
+
+		// get info on uploading torrents
+		var badPeers []string
+		// ? would be good practice for concurrency here - could probably run each in a goroutine
+		for _, hash := range uploadingHashes.Array() {
+			requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
+			resp, err = client.Get(requestUrl)
+			if err != nil {
+				logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
+				os.Exit(1)
 			}
-			return true
-		})
-	}
-	if len(badPeers) > 0 {
-		logger.Info("found bad peers", "peers", badPeers)
-	} else {
-		logger.Debug("no bad peers found")
-		os.Exit(0)
-	}
+			body, _ = io.ReadAll(resp.Body)
+			if resp.StatusCode != http.StatusOK {
+				logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
+					"response", string(body), "hash", hash.Str,
+				)
+				os.Exit(1)
+			}
+			if !gjson.ValidBytes(body) {
+				logger.Error("invalid json response when attempting to parse uploading torrent", "hash", hash.Str)
+				os.Exit(1)
+			}
 
-	// ban them
-	requestUrl = qbitBaseUrl + "/api/v2/transfer/banPeers"
-	data = url.Values{"peers": {strings.Join(badPeers[:], "|")}} // produces {"peers": "1.2.3.4:55|5.6.7.8:99"}
-	resp, err = client.PostForm(requestUrl, data)
-	if err != nil {
-		logger.Error("failed to ban bad peers", "error", err.Error()) // don't include status code because docs say that
-	} // it always returns a 200 OK https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#ban-peers
+			// iterate over each peer and find the ip/port of peers using the TS0008 peer ID
+			details := gjson.ParseBytes(body)
+			peers := details.Get(`peers`)
+			peers.ForEach(func(key, value gjson.Result) bool {
+				if value.Get("peer_id_client").Str == "-TS0008-" {
+					badPeers = append(badPeers, key.String())
+					return false // stop iteration once match is found
+				}
+				return true
+			})
+		}
+		if len(badPeers) > 0 {
+			logger.Info("found bad peers", "peers", badPeers)
+		} else {
+			logger.Debug("no bad peers found")
+			continue mainLoop
+		}
 
-	body, _ = io.ReadAll(resp.Body)
-	if len(body) != 0 {
-		logger.Error("invalid response when trying to ban peers", "peers", badPeers, "response", string(body))
-	} else {
-		logger.Info("banned some peers", "peers", badPeers)
+		// ban them
+		requestUrl = qbitBaseUrl + "/api/v2/transfer/banPeers"
+		data = url.Values{"peers": {strings.Join(badPeers[:], "|")}} // produces {"peers": "1.2.3.4:55|5.6.7.8:99"}
+		resp, err = client.PostForm(requestUrl, data)
+		if err != nil {
+			logger.Error("failed to ban bad peers", "error", err.Error()) // don't include status code because docs say that it always returns a 200 OK
+			os.Exit(1)                                                    // https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#ban-peers
+		}
+
+		body, _ = io.ReadAll(resp.Body)
+		if len(body) != 0 {
+			logger.Error("invalid response when trying to ban peers", "peers", badPeers, "response", string(body))
+			os.Exit(1)
+		} else {
+			logger.Info("banned some peers", "peers", badPeers)
+		}
 	}
 }
