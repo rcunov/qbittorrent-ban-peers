@@ -87,7 +87,7 @@ mainLoop:
 		}
 		body, _ = io.ReadAll(resp.Body)
 		if string(body) == `[]` {
-			logger.Info("no active torrents")
+			logger.Debug("no active torrents")
 			continue mainLoop
 		}
 
@@ -99,7 +99,7 @@ mainLoop:
 		activeTorrents := gjson.ParseBytes(body)
 		uploadingHashes := activeTorrents.Get(`#(state=="uploading")#.hash`)
 		if len(uploadingHashes.Array()) == 0 {
-			logger.Info("no torrents are uploading")
+			logger.Debug("torrents are active but none are uploading")
 			continue mainLoop
 		}
 
@@ -139,7 +139,7 @@ mainLoop:
 		if len(badPeers) > 0 {
 			logger.Debug("found bad peers", "peers", badPeers)
 		} else {
-			logger.Debug("no bad peers found")
+			logger.Debug("torrents are uploading but no bad peers found")
 			continue mainLoop
 		}
 
