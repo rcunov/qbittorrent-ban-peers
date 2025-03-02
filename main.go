@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -73,6 +74,32 @@ func main() {
 	defer resp.Body.Close()
 	body, _ = io.ReadAll(resp.Body)
 	logger.Debug("retrieved qbit API version", "version", string(body))
+
+	// reset the banned IPs every day
+	go func() {
+		for {
+			requestUrl := qbitBaseUrl + "/api/v2/app/setPreferences"
+
+			// payload needs to look like `json=<urlencodedpayload>`
+			prefsData := map[string]string{"banned_IPs": ""}
+			payload, _ := json.Marshal(prefsData)
+
+			resp, err := client.PostForm(requestUrl, url.Values{"json": {string(payload)}})
+			if err != nil {
+				logger.Error("returned error when trying to send request to clear banned IPs from qbit config", "error", err.Error())
+			}
+			body, _ := io.ReadAll(resp.Body)
+			if len(body) != 0 {
+				logger.Error("invalid response when trying to clear list of banned peers", "response", string(body), "status_code", resp.StatusCode)
+			} else {
+				logger.Info("cleared banned peer list", "wait_time", "24h")
+			}
+
+			resp.Body.Close()
+
+			time.Sleep(24 * time.Hour)
+		}
+	}()
 
 	// start infinite loop here to check for bad peers
 mainLoop:
