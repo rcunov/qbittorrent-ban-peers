@@ -25,9 +25,9 @@ services:
     init: true # https://docs.docker.com/compose/compose-file/compose-file-v3/#init
     environment:
       - qbitBaseUrl=http://qbittorrent:8080
-      - qbitUsername=${qbitUsername} # qBittorrent web UI username
-      - qbitPassword=${qbitPassword} # qBittorrent web UI password
-      # - logLevel=debug # defaults to "info" if not set
+      - qbitUsername=${qbUsername} # qBittorrent web UI username
+      - qbitPassword=${qbPassword} # qBittorrent web UI password
+      - logLevel=info # other possible values are "debug" and "error"
 
 networks:
   qbittorrent-network:
