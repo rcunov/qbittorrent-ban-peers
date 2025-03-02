@@ -73,7 +73,7 @@ func main() {
 	}
 	defer resp.Body.Close()
 	body, _ = io.ReadAll(resp.Body)
-	logger.Debug("retrieved qbit API version", "version", string(body))
+	logger.Info("retrieved qbit API version", "version", string(body))
 
 	// reset the banned IPs every day
 	go func() {
@@ -102,9 +102,11 @@ func main() {
 	}()
 
 	// start infinite loop here to check for bad peers
+	logger.Info("watching for bad peers")
 mainLoop:
 	for {
 		time.Sleep(3 * time.Second)
+
 		// get list of active torrents
 		requestUrl = qbitBaseUrl + "/api/v2/torrents/info?filter=active"
 		resp, err = client.Get(requestUrl)
