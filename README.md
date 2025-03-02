@@ -1,5 +1,5 @@
 # qbittorrent-ban-torrentstorm
-Watches the qBittorrent API for any peers with a client string of "TorrentStorm 0.0.0.8" and bans them.
+Watches the qBittorrent API for any peers with a peer ID of `-TS0008-` and bans them.
 
 ## TorrentStorm mystery explained
 
@@ -11,8 +11,10 @@ Services like Stremio and Real-Debrid explicitly never seed the content they lee
 
 ### Tit for tat - Stremio's response
 
-It also seems that the Stremio devs saw this same Reddit post, because not a month after it being published a commit was merged in their backend that [spoofs the peer ID to more popular clients](https://github.com/Stremio/enginefs/pull/30/commits/c62b8b7d8ea02d23318fea1f5a75d601e5c81a4c), an evasion technique not used previously. My theory is that until that post was made, no one had really figured out it who TorrentStorm peers were and that there was no reason to obfuscate their identity by spoofing the peer ID. But now that Stremio has been identified as the likely source of these peers, they are spoofing the ID to evade bans by seeds in the swarm. 
+It also seems that the Stremio devs saw this same Reddit post, because not a month after it being published a commit was merged in their backend that allows the user to [spoof the peer ID to more popular clients](https://github.com/Stremio/enginefs/pull/30/commits/c62b8b7d8ea02d23318fea1f5a75d601e5c81a4c), an evasion technique not used previously. My theory is that until that post was made, no one had really figured out it who TorrentStorm peers were and that there was no reason to obfuscate their identity by spoofing the peer ID. But now that Stremio has been identified as the likely source of these peers, they are spoofing the ID to evade bans by seeds in the swarm. 
 
 ### So if Stremio isn't using the TorrentStorm peer ID anymore, doesn't that make this project useless?
 
-Yeah, basically. Just thought it'd be fun to put together some information on a neat little internet mystery that'd been on my mind for a while.
+Not necessarily. The aforementioned change allows the user to spoof the peer ID, but it doesn't seem to be a default option and thus plenty of TorrentStorm peers are visible in swarms. Admittedly, spoofing the peer ID would avoid being blocked by this particular project, but it isn't impossible. Since the peer IDs that can be spoofed are hard coded, one could theoretically block those peers as well but that would include plenty of friendly fire towards otherwise innocent peers who happen to be using particular versions of the most popular torrent clients.
+
+In any case, I thought it'd be fun to put together some information on a neat little internet mystery that'd been on my mind for a while and make a fun project out of it.
