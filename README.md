@@ -15,6 +15,6 @@ It also seems that the Stremio devs saw this same Reddit post, because not a mon
 
 ### So if Stremio isn't using the TorrentStorm peer ID anymore, doesn't that make this project useless?
 
-Not necessarily. The aforementioned change allows the user to spoof the peer ID, but it doesn't seem to be a default option and thus plenty of TorrentStorm peers are visible in swarms. Admittedly, spoofing the peer ID would avoid being blocked by this particular project, but it isn't impossible. Since the peer IDs that can be spoofed are hard coded, one could theoretically block those peers as well but that would include plenty of friendly fire towards otherwise innocent peers who happen to be using particular versions of the most popular torrent clients.
+Not necessarily. The aforementioned change allows the user to spoof the peer ID, but it doesn't seem to be a default option and thus plenty of TorrentStorm peers are visible in swarms. Admittedly, spoofing the peer ID would avoid being blocked by this particular project, but it isn't impossible to block these peers. Since the peer IDs that can be spoofed by Stremio are hard coded, one could theoretically block those peers as well but that would include plenty of friendly fire towards otherwise innocent peers who happen to be using particular versions of the most popular torrent clients.
 
 In any case, I thought it'd be fun to put together some information on a neat little internet mystery that'd been on my mind for a while and make a fun project out of it.
