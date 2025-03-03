@@ -13,3 +13,6 @@
 [μTP] AD 14.0.38 (-ADE0]0-)	
 
 [μTP] MovieTvshow 1.1 (-Lr1100-)	
+
+<!-- likely legit, but a bit rare and curious -->
+[BT] FrostWire/6.13.5 libtorrent/1.2.19.0 (-FW6D55-)	
