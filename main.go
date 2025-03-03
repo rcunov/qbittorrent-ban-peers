@@ -160,7 +160,6 @@ mainLoop:
 			peers.ForEach(func(key, value gjson.Result) bool {
 				if value.Get("peer_id_client").Str == "-TS0008-" {
 					badPeers = append(badPeers, key.String())
-					return false // stop iteration once match is found
 				}
 				return true
 			})
