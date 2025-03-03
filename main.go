@@ -167,7 +167,7 @@ mainLoop:
 				os.Exit(1)
 			}
 
-			// iterate over each peer and find the ip/port of peers using the TS0008 peer ID
+			// iterate over each peer and find the ip/port of peers using a blacklisted peer ID
 			details := gjson.ParseBytes(body)
 			peers := details.Get(`peers`)
 			peers.ForEach(func(key, value gjson.Result) bool {
@@ -177,7 +177,6 @@ mainLoop:
 					peerId == "Unknown" || // not sure what these are but they seem sus
 					strings.HasPrefix(peerId, "-LT11") { // elementum
 
-					// badPeers = append(badPeers, key.String())
 					badPeers = append(badPeers, peerInfo{Addr: key.String(), Hash: hash.Str, Id: peerId})
 				}
 				return true
