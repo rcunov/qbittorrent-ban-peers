@@ -46,12 +46,26 @@ func main() {
 	// authenticate and get session cookie
 	requestUrl := qbitBaseUrl + "/api/v2/auth/login"
 	data := url.Values{"username": {qbitUsername}, "password": {qbitPassword}}
-	resp, err := client.PostForm(requestUrl, data)
-	if err != nil {
-		logger.Error("failed to send qbit authentication request", "error", err.Error())
+
+	// retry a few times in case qbit hasn't started up yet.
+	// if the program dies and restarts four or five times before it successfully authenticates, it'll clog up the logs
+	var resp *http.Response
+	var err error
+	for i := 1; i <= 5; i++ {
+		resp, err = client.PostForm(requestUrl, data)
+		if err == nil {
+			logger.Debug("successfully authenticated to qbit")
+			break
+		}
+		logger.Debug("qbit authentication request returned an error", "error", err.Error())
+		time.Sleep(2 * time.Second) // wait before retrying
+	}
+	if err != nil { // if can't connect after 5 attempts, exit
+		logger.Error("unable to authenticate to qbit", "error", err.Error())
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
+
 	body, _ := io.ReadAll(resp.Body)
 	authResponse := string(body)
 	if resp.StatusCode != http.StatusOK {
@@ -62,7 +76,6 @@ func main() {
 		logger.Error("invalid credentials for qbit", "response", authResponse)
 		os.Exit(1)
 	}
-	logger.Debug("successfully authenticated to qbit")
 
 	// get app version for debugging purposes
 	requestUrl = qbitBaseUrl + "/api/v2/app/version"
