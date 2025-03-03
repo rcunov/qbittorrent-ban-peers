@@ -182,7 +182,6 @@ mainLoop:
 						peerId == "Unknown" || // not sure what these are but they seem sus
 						strings.HasPrefix(peerId, "-LT11") { // elementum
 
-						// badPeers = append(badPeers, key.String())
 						mu.Lock()
 						badPeers = append(badPeers, peerInfo{Addr: key.String(), Hash: hash.Str, Id: peerId})
 						mu.Unlock()
