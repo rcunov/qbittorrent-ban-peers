@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/tidwall/gjson"
@@ -147,41 +148,51 @@ mainLoop:
 
 		// get info on uploading torrents
 		var badPeers []peerInfo
-		// ? would be good practice for concurrency here - could probably run each in a goroutine
+		var wg sync.WaitGroup
+		var mu sync.Mutex
 		for _, hash := range uploadingHashes.Array() {
-			requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
-			resp, err = client.Get(requestUrl)
-			if err != nil {
-				logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode, "hash", hash.Str)
-				os.Exit(1)
-			}
-			body, _ = io.ReadAll(resp.Body)
-			if resp.StatusCode != http.StatusOK {
-				logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
-					"response", string(body), "hash", hash.Str,
-				)
-				os.Exit(1)
-			}
-			if !gjson.ValidBytes(body) {
-				logger.Error("invalid json response when attempting to parse uploading torrent", "hash", hash.Str)
-				os.Exit(1)
-			}
-
-			// iterate over each peer and find the ip/port of peers using a blacklisted peer ID
-			details := gjson.ParseBytes(body)
-			peers := details.Get(`peers`)
-			peers.ForEach(func(key, value gjson.Result) bool {
-				peerId := value.Get("peer_id_client").Str
-				if peerId == "-TS0008-" || // torrentstorm (stremio)
-					peerId == "-WW0098-" || // webtorrent
-					peerId == "Unknown" || // not sure what these are but they seem sus
-					strings.HasPrefix(peerId, "-LT11") { // elementum
-
-					badPeers = append(badPeers, peerInfo{Addr: key.String(), Hash: hash.Str, Id: peerId})
+			wg.Add(1)
+			go func(hash gjson.Result) {
+				defer wg.Done()
+				requestUrl := fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
+				resp, err := client.Get(requestUrl)
+				if err != nil {
+					logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode, "hash", hash.Str)
+					os.Exit(1)
 				}
-				return true
-			})
+				body, _ := io.ReadAll(resp.Body)
+				if resp.StatusCode != http.StatusOK {
+					logger.Error("qbit API returned error when trying to get torrent by hash", "status_code", resp.StatusCode,
+						"response", string(body), "hash", hash.Str,
+					)
+					os.Exit(1)
+				}
+				if !gjson.ValidBytes(body) {
+					logger.Error("invalid json response when attempting to parse uploading torrent", "hash", hash.Str)
+					os.Exit(1)
+				}
+
+				// iterate over each peer and find the ip/port of peers using the TS0008 peer ID
+				details := gjson.ParseBytes(body)
+				peers := details.Get(`peers`)
+				peers.ForEach(func(key, value gjson.Result) bool {
+					peerId := value.Get("peer_id_client").Str
+					if peerId == "-TS0008-" || // torrentstorm (stremio)
+						peerId == "-WW0098-" || // webtorrent
+						peerId == "Unknown" || // not sure what these are but they seem sus
+						strings.HasPrefix(peerId, "-LT11") { // elementum
+
+						// badPeers = append(badPeers, key.String())
+						mu.Lock()
+						badPeers = append(badPeers, peerInfo{Addr: key.String(), Hash: hash.Str, Id: peerId})
+						mu.Unlock()
+					}
+					return true
+				})
+			}(hash)
 		}
+		wg.Wait()
+
 		if len(badPeers) > 0 {
 			logger.Debug("found bad peers", "peers", badPeers)
 		} else {
