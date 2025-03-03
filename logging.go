@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+// maps peer information together
+type peerInfo struct {
+	Addr string `json:"addr"`
+	Hash string `json:"hash"`
+	Id   string `json:"id"`
+}
+
 // NewJSONHandler creates a JSON-based slog handler with a configurable log level.
 func NewJSONHandler(logLevel slog.Level) *slog.Logger {
 	// logLevel := GetLogLevel()

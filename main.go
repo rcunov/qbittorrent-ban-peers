@@ -133,7 +133,7 @@ mainLoop:
 		}
 
 		// get info on uploading torrents
-		var badPeers []string
+		var badPeers []peerInfo
 		// ? would be good practice for concurrency here - could probably run each in a goroutine
 		for _, hash := range uploadingHashes.Array() {
 			requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
@@ -164,7 +164,8 @@ mainLoop:
 					peerId == "Unknown" || // not sure what these are but they seem sus
 					strings.HasPrefix(peerId, "-LT11") { // elementum
 
-					badPeers = append(badPeers, key.String())
+					// badPeers = append(badPeers, key.String())
+					badPeers = append(badPeers, peerInfo{Addr: key.String(), Hash: hash.Str, Id: peerId})
 				}
 				return true
 			})
@@ -178,7 +179,11 @@ mainLoop:
 
 		// ban them
 		requestUrl = qbitBaseUrl + "/api/v2/transfer/banPeers"
-		data = url.Values{"peers": {strings.Join(badPeers[:], "|")}} // produces {"peers": "1.2.3.4:55|5.6.7.8:99"}
+		addrs := make([]string, len(badPeers))
+		for i, p := range badPeers {
+			addrs[i] = p.Addr
+		}
+		data = url.Values{"peers": {strings.Join(addrs[:], "|")}} // produces {"peers": "1.2.3.4:55|5.6.7.8:99"}
 		resp, err = client.PostForm(requestUrl, data)
 		if err != nil {
 			logger.Error("failed to ban bad peers", "error", err.Error()) // don't include status code because docs say that it always returns a 200 OK
