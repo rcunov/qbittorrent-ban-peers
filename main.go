@@ -105,12 +105,12 @@ func main() {
 			if len(body) != 0 {
 				logger.Error("invalid response when trying to clear list of banned peers", "response", string(body), "status_code", resp.StatusCode)
 			} else {
-				logger.Info("cleared banned peer list", "wait_time", "24h")
+				logger.Info("cleared banned peer list", "wait_time", "6h")
 			}
 
 			resp.Body.Close()
 
-			time.Sleep(24 * time.Hour)
+			time.Sleep(6 * time.Hour)
 		}
 	}()
 
