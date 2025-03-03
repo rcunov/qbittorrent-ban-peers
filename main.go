@@ -152,7 +152,7 @@ mainLoop:
 			requestUrl = fmt.Sprintf("%s/api/v2/sync/torrentPeers?hash=%s", qbitBaseUrl, hash)
 			resp, err = client.Get(requestUrl)
 			if err != nil {
-				logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode)
+				logger.Error("failed to get torrent by hash", "error", err.Error(), "status_code", resp.StatusCode, "hash", hash.Str)
 				os.Exit(1)
 			}
 			body, _ = io.ReadAll(resp.Body)
