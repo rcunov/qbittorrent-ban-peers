@@ -178,8 +178,8 @@ mainLoop:
 				peers.ForEach(func(key, value gjson.Result) bool {
 					peerId := value.Get("peer_id_client").Str
 					if peerId == "-TS0008-" || // torrentstorm (stremio)
-						peerId == "-WW0098-" || // webtorrent
 						peerId == "Unknown" || // not sure what these are but they seem sus
+						strings.HasPrefix(peerId, "-WW00") || // webtorrent
 						strings.HasPrefix(peerId, "-LT11") { // elementum
 
 						mu.Lock()
