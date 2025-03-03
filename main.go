@@ -158,7 +158,12 @@ mainLoop:
 			details := gjson.ParseBytes(body)
 			peers := details.Get(`peers`)
 			peers.ForEach(func(key, value gjson.Result) bool {
-				if value.Get("peer_id_client").Str == "-TS0008-" {
+				peerId := value.Get("peer_id_client").Str
+				if peerId == "-TS0008-" || // torrentstorm (stremio)
+					peerId == "-WW0098-" || // webtorrent
+					peerId == "Unknown" || // not sure what these are but they seem sus
+					strings.HasPrefix(peerId, "-LT11") { // elementum
+
 					badPeers = append(badPeers, key.String())
 				}
 				return true
