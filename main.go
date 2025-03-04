@@ -172,7 +172,7 @@ mainLoop:
 					os.Exit(1)
 				}
 
-				// iterate over each peer and find the ip/port of peers using the TS0008 peer ID
+				// iterate over each peer and find the ip/port of peers using a blacklisted peer ID
 				details := gjson.ParseBytes(body)
 				peers := details.Get(`peers`)
 				peers.ForEach(func(key, value gjson.Result) bool {
