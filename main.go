@@ -226,6 +226,6 @@ func main() {
 	logger.Info("watching for bad peers")
 	for {
 		CheckForBadPeers()
-		time.Sleep(3 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
