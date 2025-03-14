@@ -14,13 +14,13 @@
 <!-- ? blacklist? android torrenting APK, unlikely to seed -->
 [BT] tTorrent v1.8.9 (-tT1890-)
 [BT] Freebox BitTorrent 2.0 (-FX0200-)
-<!-- more unlikely to seed -->
-[BT] FDM/6.22.0.5714 (FD65uftU)
 
-<!-- legit, but a bit rare and curious -->
+<!-- seemingly legit, but a bit rare and curious -->
 [BT] FrostWire/6.13.5 libtorrent/1.2.19.0 (-FW6D55-)
 [μTP] Folx 5.27.13991 (-LT10B0-)
 [μTP] qBittorrent Enhanced/4.6.7.10 (-qB467A-)
+[BT] WD 0.0.2.4 (-WD0024-)
+[BT] FDM/6.22.0.5714 (FD65uftU)
 
 <!-- https://github.com/PBH-BTN/PeerBanHelper -->
 [μTP] BiglyBT 3.8.0.1_B05 (PeerBanHelper/7.4.3) (-BI3801-)
