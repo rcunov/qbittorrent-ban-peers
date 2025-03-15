@@ -1,5 +1,5 @@
-# qbittorrent-ban-torrentstorm
-Watches the qBittorrent API for any peers with a peer ID of `-TS0008-` and bans them.
+# qbittorrent-ban-peers
+Watches the qBittorrent API for suspicious peers, such as those with a peer ID of `-TS0008-`, and bans them.
 
 ## TorrentStorm mystery explained
 
