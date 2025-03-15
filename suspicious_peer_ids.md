@@ -11,6 +11,8 @@
 <!-- todo: investigate -->
 [μTP] AD 14.0.38 (-ADE0]0-)
 [μTP] MovieTvshow 1.1 (-Lr1100-)
+[BT] KTorrent/23.8.5 (-KT2385-)	
+[μTP] Movie Downloader 7.0 (-Lr7000-)
 <!-- ? blacklist? android torrenting APK, unlikely to seed -->
 [BT] tTorrent v1.8.9 (-tT1890-)
 [BT] Freebox BitTorrent 2.0 (-FX0200-)
