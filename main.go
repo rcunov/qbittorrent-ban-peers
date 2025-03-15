@@ -117,6 +117,7 @@ func CheckForBadPeers() {
 				if peerId == "-TS0008-" || // torrentstorm (stremio)
 					peerId == "Unknown" || // not sure what these are but they seem sus
 					strings.HasPrefix(peerId, "-WW00") || // webtorrent
+					strings.HasPrefix(peerId, "-Lr") || // movie downloader/movietvshow
 					strings.HasPrefix(peerId, "-LT11") { // elementum
 
 					mu.Lock()
