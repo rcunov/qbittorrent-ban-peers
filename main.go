@@ -213,12 +213,11 @@ func main() {
 	body, _ = io.ReadAll(resp.Body)
 	logger.Info("retrieved qbit API version", "version", string(body))
 
-	ClearBannedIPs()
-
 	// reset the banned IPs every so often
+	ClearBannedIPs()
 	go func() {
 		for {
-			time.Sleep(6 * time.Hour)
+			time.Sleep(20 * time.Minute)
 			ClearBannedIPs()
 		}
 	}()
