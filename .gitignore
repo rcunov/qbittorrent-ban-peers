@@ -1,2 +1,5 @@
 # Sample data
 *.json
+
+# vscode debugger artifacts
+*__debug_bin*
