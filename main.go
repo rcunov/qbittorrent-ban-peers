@@ -112,15 +112,25 @@ func CheckForBadPeers() {
 			// iterate over each peer and find the ip/port of peers using a blacklisted peer ID
 			details := gjson.ParseBytes(body)
 			peers := details.Get(`peers`)
+
 			peers.ForEach(func(key, value gjson.Result) bool {
 				peerId := value.Get("peer_id_client").Str
 				peerUserAgent := value.Get("client").Str
-				if peerId == "-TS0008-" || // torrentstorm (stremio)
-					peerId == "Unknown" || // not sure what these are but they seem sus
-					strings.HasPrefix(peerId, "-WW00") || // webtorrent
-					strings.HasPrefix(peerId, "-Lr") || // movie downloader/movietvshow
-					strings.Contains("elementum", strings.ToLower(peerUserAgent)) { // elementum peer id looks similar to libtorrent. kinda stupid fix but whatever
+				isBadPeer := false
 
+				switch {
+				case peerId == "-TS0008-":
+					isBadPeer = true // torrentstorm (stremio)
+				case peerId == "Unknown":
+					isBadPeer = true // not sure what these are but they seem sus
+				case strings.HasPrefix(peerId, "-WW00"):
+					isBadPeer = true // webtorrent
+				case strings.HasPrefix(peerId, "-Lr"):
+					isBadPeer = true // movie downloader/movietvshow
+				case strings.Contains(strings.ToLower(peerUserAgent), "elementum"):
+					isBadPeer = true // elementum peer id looks similar to libtorrent. kinda stupid fix but whatever
+				}
+				if isBadPeer {
 					mu.Lock()
 					badPeers = append(badPeers, peerInfo{Addr: key.String(), Hash: hash.Str, Id: peerId, UserAgent: peerUserAgent})
 					mu.Unlock()
