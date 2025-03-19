@@ -9,9 +9,10 @@ import (
 
 // maps peer information together
 type peerInfo struct {
-	Addr string `json:"addr"`
-	Hash string `json:"hash"`
-	Id   string `json:"id"`
+	Addr      string `json:"addr"`
+	Hash      string `json:"hash"`
+	Id        string `json:"id"`
+	UserAgent string `json:"useragent"`
 }
 
 // NewJSONHandler creates a JSON-based slog handler with a configurable log level.
