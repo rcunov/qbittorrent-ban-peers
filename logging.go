@@ -17,7 +17,6 @@ type peerInfo struct {
 
 // NewJSONHandler creates a JSON-based slog handler with a configurable log level.
 func NewJSONHandler(logLevel slog.Level) *slog.Logger {
-	// logLevel := GetLogLevel()
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: logLevel,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
