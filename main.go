@@ -114,13 +114,13 @@ func CheckForBadPeers() {
 			peers := details.Get(`peers`)
 			peers.ForEach(func(key, value gjson.Result) bool {
 				peerId := value.Get("peer_id_client").Str
-				peerUserAgent := value.Get("client").Str
 				if peerId == "-TS0008-" || // torrentstorm (stremio)
 					peerId == "Unknown" || // not sure what these are but they seem sus
 					strings.HasPrefix(peerId, "-WW00") || // webtorrent
 					strings.HasPrefix(peerId, "-Lr") || // movie downloader/movietvshow
 					strings.HasPrefix(peerId, "-LT11") { // elementum
 
+					peerUserAgent := value.Get("client").Str
 					mu.Lock()
 					badPeers = append(badPeers, peerInfo{Addr: key.String(), Hash: hash.Str, Id: peerId, UserAgent: peerUserAgent})
 					mu.Unlock()
