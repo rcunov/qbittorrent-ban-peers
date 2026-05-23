@@ -204,12 +204,9 @@ func main() {
 
 	body, _ := io.ReadAll(resp.Body)
 	authResponse := string(body)
-	if resp.StatusCode != http.StatusOK {
-		logger.Error("qbit authentication request returned an error", "status_code", resp.StatusCode)
-		os.Exit(1)
-	}
-	if authResponse != "Ok." {
-		logger.Error("invalid credentials for qbit", "response", authResponse)
+	// https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-5.0)#login
+	if resp.StatusCode > 299 || resp.StatusCode < 200 { // API v5.0 now returns a 204 instead of a 200 - no mention on docs
+		logger.Error("qbit authentication request returned an error", "status_code", resp.StatusCode, "response_body", authResponse)
 		os.Exit(1)
 	}
 
