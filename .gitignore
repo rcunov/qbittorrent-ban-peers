@@ -3,3 +3,6 @@
 
 # vscode debugger artifacts
 *__debug_bin*
+
+# vim swap files
+**/*.swp
